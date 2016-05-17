@@ -128,7 +128,7 @@ size_t        gt_editscript_size(const GtEditscript *editscript);
 void          gt_editscript_delete(GtEditscript *editscript);
 
 /* Returns new <GtEditscriptBuilder> object */
-GtEditscriptBuilder *gt_editscript_builder_new(GtEditscript *editscript);
+GtEditscriptBuilder* gt_editscript_builder_new(GtEditscript *editscript);
 
 /* Resets the <GtEditscriptBuilder> object with a new <GtEditscript>. The
    <GtEditscript> will be reset, too. */
