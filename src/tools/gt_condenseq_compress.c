@@ -154,7 +154,8 @@ gt_condenseq_compress_option_parser_new(void *tool_arguments)
   /* -mat */
   option = gt_option_new_int("mat",
                              "matchscore for extension-alignment, "
-                             "requirements: mat > mis, mat > 2ins, mat > 2del",
+                             "requirements: mat > 0, mat >= mis, mat >= 2*ins, "
+                             "mat >= 2*del",
                              &arguments->scores.mat, 2);
   gt_option_is_extended_option(option);
   gt_option_parser_add_option(op, option);
