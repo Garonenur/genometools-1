@@ -468,21 +468,22 @@ static int ces_c_xdrop(GtCondenseqCreator *ces_c,
   int had_err = 0;
   GtXdropbest left_xdrop = {0,0,0,0,0}, right_xdrop = {0,0,0,0,0};
   GtCondenseqCreatorXdrop *xdrop = &ces_c->xdrop;
-  const bool forward = true;
+  const bool forward = true,
+             backward = false;
 
   gt_assert(subject_bounds.start <= i);
   gt_assert(i + ces_c->kmersize - 1 < subject_bounds.end);
 
   /* left xdrop */
   if (query_bounds.start < j && subject_bounds.start < i) {
-    gt_seqabstract_reinit_encseq(!forward,
+    gt_seqabstract_reinit_encseq(backward,
                                  GT_READMODE_FORWARD,
                                  xdrop->unique_seq_bwd,
                                  ces_c->input_es,
                                  i - subject_bounds.start,
                                  subject_bounds.start);
     ces_c_xdrops++;
-    gt_evalxdroparbitscoresextend(!forward,
+    gt_evalxdroparbitscoresextend(backward,
                                   &left_xdrop,
                                   xdrop->left_xdrop_res,
                                   xdrop->unique_seq_bwd,
@@ -586,7 +587,8 @@ static int ces_c_extend_seeds_window(GtCondenseqCreator *ces_c,
   const unsigned int max_win_idx = ces_c->windowsize - 1;
   unsigned int idx_win;
   GtXdropbest empty = {0,0,0,0,0};
-  const bool forward = true;
+  const bool forward = true,
+             backward = false;
   subject_bounds.end =
     subject_bounds.start = 0;
 
@@ -620,7 +622,7 @@ static int ces_c_extend_seeds_window(GtCondenseqCreator *ces_c,
     }
 
     if (query_bounds.start < querypos) {
-      gt_seqabstract_reinit_encseq(!forward,
+      gt_seqabstract_reinit_encseq(backward,
                                    GT_READMODE_FORWARD,
                                    xdrop->current_seq_bwd,
                                    ces_c->input_es,
@@ -725,7 +727,8 @@ static int ces_c_extend_seeds_brute_force(GtCondenseqCreator *ces_c,
   GtUword best_match = GT_UNDEF_UWORD,
           idx_cur,
           querypos = ces_c->main_pos;
-  const bool forward = true;
+  const bool forward = true,
+             backward = false;
   GtXdropbest empty = {0,0,0,0,0};
 
   *xdrop->left = empty;
@@ -744,7 +747,7 @@ static int ces_c_extend_seeds_brute_force(GtCondenseqCreator *ces_c,
   query_bounds.end = ces_c->current_seq_start + ces_c->current_seq_len;
 
   if (query_bounds.start < querypos) {
-    gt_seqabstract_reinit_encseq(!forward,
+    gt_seqabstract_reinit_encseq(backward,
                                  GT_READMODE_FORWARD,
                                  xdrop->current_seq_bwd,
                                  ces_c->input_es,
@@ -808,7 +811,8 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
   GtUword best_match = GT_UNDEF_UWORD,
           subject_idx, querypos;
   GtXdropbest empty = {0,0,0,0,0};
-  const bool forward = true;
+  const bool forward = true,
+             backward = false;
 
   *xdrop->left = empty;
   *xdrop->right = empty;
@@ -885,7 +889,7 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
         if (best_match == GT_UNDEF_UWORD ||
             j_prime > best_match + xdrop->right->ivalue) {
           if (query_bounds.start < i_prime) {
-            gt_seqabstract_reinit_encseq(!forward,
+            gt_seqabstract_reinit_encseq(backward,
                                          GT_READMODE_FORWARD,
                                          xdrop->current_seq_bwd,
                                          ces_c->input_es,
