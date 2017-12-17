@@ -1319,6 +1319,7 @@ static CesCState ces_c_extend_seed_kmer(GtCondenseqCreator *ces_c,
     if (ces_c->current_orig_start < link.orig_startpos) {
       GtUword leading_unique_len =
         link.orig_startpos - ces_c->current_orig_start;
+      /* add leading not matching part if it is very short */
       if (leading_unique_len <= (GtUword) ces_c->kmersize) {
         GtUword count;
         for (count = 0; count < leading_unique_len; count++)
