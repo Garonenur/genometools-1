@@ -607,6 +607,7 @@ static int ces_c_extend_seeds_window(GtCondenseqCreator *ces_c,
   query_bounds.end = ces_c->current_seq_start + ces_c->current_seq_len;
   gt_assert(query_bounds.start <= querypos);
   if (!(querypos <= query_bounds.end - ces_c->windowsize)) {
+    /* TODO DW check if this should be an assertion */
     gt_error_set(err, "querypos: " GT_WU ", not smaller end (" GT_WU
                  ") - windowsize (%u) (xdrop calls: " GT_WU " )",
                  querypos,
