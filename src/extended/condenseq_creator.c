@@ -645,7 +645,7 @@ static int ces_c_extend_seeds_window(GtCondenseqCreator *ces_c,
        !had_err && idx_cur < match_positions.no_positions;
        idx_cur++)
   {
-    bool found = false;
+    bool found = false; /* we only extend j' once */
     GtUword subjectpos = match_positions.startpos[idx_cur],
             new_uid = match_positions.unique_ids[idx_cur];
     /* end == subjectpos should not be possible as this would be a separator */
