@@ -1220,7 +1220,6 @@ ces_c_reset_pos_and_iter_to_current_seq(GtCondenseqCreator *ces_c)
 
 static CesCState ces_c_skip_short_seqs(GtCondenseqCreator *ces_c)
 {
-
   while (ces_c->main_seqnum < ces_c->ces->orig_num_seq) {
     ces_c->current_seq_len = gt_condenseq_seqlength(ces_c->ces,
                                                     ces_c->main_seqnum);
