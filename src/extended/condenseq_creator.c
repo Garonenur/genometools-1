@@ -297,7 +297,7 @@ typedef int
 struct GtCondenseqCreator {
   GtEncseq           *input_es;
   GtKmerDatabase     *kmer_db;
-  GtKmercodeiterator *adding_iter, *main_kmer_iter;
+  GtKmercodeiterator *main_kmer_iter;
   GtLogger           *logger;
   GtCondenseq        *ces;
   CesCDiags          *diagonals;
@@ -985,7 +985,6 @@ GtCondenseqCreator *gt_condenseq_creator_new(GtUword initsize,
                  "set");
     return NULL;
   }
-  ces_c->adding_iter = NULL;
   ces_c->ces = NULL;
   ces_c->current_orig_start = 0;
   ces_c->cleanup_percent = GT_DIAGS_CLEAN_LIMIT;
@@ -1609,9 +1608,7 @@ static int ces_c_analyse(GtCondenseqCreator *ces_c, GtTimer *timer,
     }
   }
   gt_kmercodeiterator_delete(ces_c->main_kmer_iter);
-  gt_kmercodeiterator_delete(ces_c->adding_iter);
   ces_c->main_kmer_iter = NULL;
-  ces_c->adding_iter = NULL;
   return had_err;
 }
 
