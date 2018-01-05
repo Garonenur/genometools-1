@@ -464,7 +464,6 @@ static int ces_c_xdrop(GtCondenseqCreator *ces_c,
                        GtRange subject_bounds,
                        GtUword unique_id,
                        GtCondenseqLink *best_link,
-                       GtUword *best_match,
                        GtError *err)
 {
   int had_err = 0;
@@ -544,7 +543,6 @@ static int ces_c_xdrop(GtCondenseqCreator *ces_c,
       /* left started at query_pos-1, so query_pos-length is the first char on
          the left */
       best_link->orig_startpos -= left_xdrop.jvalue;
-      *best_match = subj_pos;
     }
   }
   gt_xdrop_resources_reset(xdrop->left_xdrop_res);
@@ -585,8 +583,7 @@ static int ces_c_extend_seeds_window(GtCondenseqCreator *ces_c,
   GtKmerStartpos match_positions;
   GtCondenseqCreatorWindow *win = &ces_c->window;
   GtCondenseqCreatorXdrop *xdrop = &ces_c->xdrop;
-  GtUword best_match = GT_UNDEF_UWORD,
-          idx_cur,
+  GtUword idx_cur,
           querypos = ces_c->main_pos - ces_c->windowsize + 1;
   const unsigned int max_win_idx = ces_c->windowsize - 1;
   unsigned int idx_win;
@@ -661,49 +658,42 @@ static int ces_c_extend_seeds_window(GtCondenseqCreator *ces_c,
       gt_assert(subject_bounds.start <= subjectpos &&
                 subjectpos + ces_c->kmersize <= subject_bounds.end);
     }
-    /* check if new position is already covered by current best alignment */
-    if (best_match == GT_UNDEF_UWORD ||
-        /* ivalue is a length (within unique) -> best + ivalue is outside of
-           best alignment */
-        subjectpos >= best_match + xdrop->right->ivalue) {
-      /* start with search for right hit at end of window */
-      for (idx_win = ces_c->windowsize - 1;
-           !had_err && !found && idx_win >= ces_c->kmersize;
-           idx_win--) {
-        GtKmerStartpos j_primes;
-        j_primes.startpos =
-          win->pos_arrs[GT_CONDENSEQ_CREATOR_WINDOWIDX(win, idx_win)].startpos;
-        j_primes.no_positions =
-          win->pos_arrs[GT_CONDENSEQ_CREATOR_WINDOWIDX(win,
-                                                       idx_win)].no_positions;
-        /* If 0, there are no known match_positions for kmer at this window
-           position. */
-        if (j_primes.no_positions != 0) {
-          GtUword j_prime_idx = win->idxs[idx_win],
-                  j_prime = j_primes.startpos[j_prime_idx];
-          /* advance to at least the window */
-          while (j_prime_idx < j_primes.no_positions &&
-                 subjectpos + ces_c->kmersize - 1 > j_prime) {
-            j_prime_idx++;
-            j_prime = j_primes.startpos[j_prime_idx];
-          }
-          /* hit within window? */
-          if (j_prime_idx < j_primes.no_positions &&
-              subjectpos + ces_c->windowsize > j_prime) {
-            found = true;
-            had_err = ces_c_xdrop(ces_c,
-                                  subjectpos, querypos,
-                                  query_bounds,
-                                  subject_bounds,
-                                  new_uid,
-                                  best_link,
-                                  &best_match,
-                                  err);
-          }
-          /* within each position array, remember last highest position, start
-             there, because subjectpos increases each iteration */
-          win->idxs[idx_win] = j_prime_idx;
+    /* start with search for right hit at end of window */
+    for (idx_win = ces_c->windowsize - 1;
+         !had_err && !found && idx_win >= ces_c->kmersize;
+         idx_win--) {
+      GtKmerStartpos j_primes;
+      j_primes.startpos =
+        win->pos_arrs[GT_CONDENSEQ_CREATOR_WINDOWIDX(win, idx_win)].startpos;
+      j_primes.no_positions =
+        win->pos_arrs[GT_CONDENSEQ_CREATOR_WINDOWIDX(win,
+                                                     idx_win)].no_positions;
+      /* If 0, there are no known match_positions for kmer at this window
+         position. */
+      if (j_primes.no_positions != 0) {
+        GtUword j_prime_idx = win->idxs[idx_win],
+                j_prime = j_primes.startpos[j_prime_idx];
+        /* advance to at least the window */
+        while (j_prime_idx < j_primes.no_positions &&
+               subjectpos + ces_c->kmersize - 1 > j_prime) {
+          j_prime_idx++;
+          j_prime = j_primes.startpos[j_prime_idx];
         }
+        /* hit within window? */
+        if (j_prime_idx < j_primes.no_positions &&
+            subjectpos + ces_c->windowsize > j_prime) {
+          found = true;
+          had_err = ces_c_xdrop(ces_c,
+                                subjectpos, querypos,
+                                query_bounds,
+                                subject_bounds,
+                                new_uid,
+                                best_link,
+                                err);
+        }
+        /* within each position array, remember last highest position, start
+           there, because subjectpos increases each iteration */
+        win->idxs[idx_win] = j_prime_idx;
       }
     }
   }
@@ -729,8 +719,7 @@ static int ces_c_extend_seeds_brute_force(GtCondenseqCreator *ces_c,
   GtKmerStartpos match_positions;
   GtCondenseqCreatorWindow *win = &ces_c->window;
   GtCondenseqCreatorXdrop *xdrop = &ces_c->xdrop;
-  GtUword best_match = GT_UNDEF_UWORD,
-          idx_cur,
+  GtUword idx_cur,
           querypos = ces_c->main_pos;
   const bool forward = true,
              backward = false;
@@ -787,7 +776,6 @@ static int ces_c_extend_seeds_brute_force(GtCondenseqCreator *ces_c,
                           subject_bounds,
                           new_id,
                           best_link,
-                          &best_match,
                           err);
   }
 
@@ -813,12 +801,11 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
   GtCondenseqCreatorWindow *win = &ces_c->window;
   GtCondenseqCreatorXdrop *xdrop = &ces_c->xdrop;
   CesCDiags *diags = ces_c->diagonals;
-  GtUword best_match = GT_UNDEF_UWORD,
-          subject_idx, querypos,
-          d_relevant = 0, d_good = 0;
-  GtXdropbest empty = {0,0,0,0,0};
+    GtUword subject_idx, querypos,
+            d_relevant = 0, d_good = 0;
+    GtXdropbest empty = {0,0,0,0,0};
   const bool forward = true,
-             backward = false;
+        backward = false;
 
   *xdrop->left = empty;
   *xdrop->right = empty;
@@ -850,22 +837,22 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
             subjectpos = subject_positions.startpos[subject_idx],
             new_id = subject_positions.unique_ids[subject_idx],
             j_prime;
-    CesCDiag *overwrite_diag = NULL;
+            CesCDiag *overwrite_diag = NULL;
 
-    gt_assert(subjectpos < querypos);
-    d = querypos - subjectpos;
+            gt_assert(subjectpos < querypos);
+            d = querypos - subjectpos;
 
-    if (subject_bounds.end < subjectpos || subject_bounds.end == 0) {
-      if (subject_bounds.end != 0) {
-        ces_c_sparse_diags_mark(diags->sparse,
-                                subject_bounds.end,
-                                querypos - subject_bounds.end,
-                                d);
-      }
-      gt_assert(new_id != ces_c->ces->uds_nelems);
-      subject_bounds.start = ces_c->ces->uniques[new_id].orig_startpos;
-      subject_bounds.end = subject_bounds.start +
-        ces_c->ces->uniques[new_id].len;
+            if (subject_bounds.end < subjectpos || subject_bounds.end == 0) {
+              if (subject_bounds.end != 0) {
+                ces_c_sparse_diags_mark(diags->sparse,
+                                        subject_bounds.end,
+                                        querypos - subject_bounds.end,
+                                        d);
+              }
+              gt_assert(new_id != ces_c->ces->uds_nelems);
+              subject_bounds.start = ces_c->ces->uniques[new_id].orig_startpos;
+              subject_bounds.end = subject_bounds.start +
+                ces_c->ces->uniques[new_id].len;
       gt_assert(subject_bounds.start <= subjectpos &&
                 subjectpos + ces_c->kmersize <= subject_bounds.end);
     }
@@ -889,36 +876,29 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
         gt_assert(i_prime >= query_bounds.start);
         gt_assert(i_prime <= query_bounds.end);
 
-        /* subjectpos and j_prime are from the same unique sequences.
-           j' position has to be outside of the current best alignment. (only
-           checks for '>' because the previous querypos was smaller) */
-        if (best_match == GT_UNDEF_UWORD ||
-            j_prime > best_match + xdrop->right->ivalue) {
-          if (query_bounds.start < i_prime) {
-            gt_seqabstract_reinit_encseq(backward,
-                                         GT_READMODE_FORWARD,
-                                         xdrop->current_seq_bwd,
-                                         ces_c->input_es,
-                                         i_prime - query_bounds.start,
-                                         query_bounds.start);
-          }
-          if (i_prime < query_bounds.end) {
-            gt_seqabstract_reinit_encseq(forward,
-                                         GT_READMODE_FORWARD,
-                                         xdrop->current_seq_fwd,
-                                         ces_c->input_es,
-                                         query_bounds.end - i_prime,
-                                         i_prime);
-          }
-          had_err = ces_c_xdrop(ces_c,
-                                j_prime, i_prime,
-                                query_bounds,
-                                subject_bounds,
-                                new_id,
-                                best_link,
-                                &best_match,
-                                err);
+        if (query_bounds.start < i_prime) {
+          gt_seqabstract_reinit_encseq(backward,
+                                       GT_READMODE_FORWARD,
+                                       xdrop->current_seq_bwd,
+                                       ces_c->input_es,
+                                       i_prime - query_bounds.start,
+                                       query_bounds.start);
         }
+        if (i_prime < query_bounds.end) {
+          gt_seqabstract_reinit_encseq(forward,
+                                       GT_READMODE_FORWARD,
+                                       xdrop->current_seq_fwd,
+                                       ces_c->input_es,
+                                       query_bounds.end - i_prime,
+                                       i_prime);
+        }
+        had_err = ces_c_xdrop(ces_c,
+                              j_prime, i_prime,
+                              query_bounds,
+                              subject_bounds,
+                              new_id,
+                              best_link,
+                              err);
       }
     }
     ces_c_diags_set(ces_c, d, subjectpos, overwrite_diag);
