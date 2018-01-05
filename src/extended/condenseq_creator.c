@@ -452,12 +452,10 @@ static void ces_c_xdrop_init(GtXdropArbitraryscores *scores,
   }                                                                         \
   while (false)
 
-/* .end is exclusive!!!
-   i and j are somewhat reversed. i is the subject, j is the query
-*/
+/* .end is exclusive!!! */
 static int ces_c_xdrop(GtCondenseqCreator *ces_c,
-                       GtUword i,
-                       GtUword j,
+                       GtUword subj_pos,
+                       GtUword query_pos,
                        GtRange query_bounds,
                        GtRange subject_bounds,
                        GtUword unique_id,
@@ -471,16 +469,16 @@ static int ces_c_xdrop(GtCondenseqCreator *ces_c,
   const bool forward = true,
              backward = false;
 
-  gt_assert(subject_bounds.start <= i);
-  gt_assert(i + ces_c->kmersize - 1 < subject_bounds.end);
+  gt_assert(subject_bounds.start <= subj_pos);
+  gt_assert(subj_pos + ces_c->kmersize - 1 < subject_bounds.end);
 
   /* left xdrop */
-  if (query_bounds.start < j && subject_bounds.start < i) {
+  if (query_bounds.start < query_pos && subject_bounds.start < subj_pos) {
     gt_seqabstract_reinit_encseq(backward,
                                  GT_READMODE_FORWARD,
                                  xdrop->unique_seq_bwd,
                                  ces_c->input_es,
-                                 i - subject_bounds.start,
+                                 subj_pos - subject_bounds.start,
                                  subject_bounds.start);
     ces_c_xdrops++;
     gt_evalxdroparbitscoresextend(backward,
@@ -490,14 +488,14 @@ static int ces_c_xdrop(GtCondenseqCreator *ces_c,
                                   xdrop->current_seq_bwd,
                                   xdrop->xdropscore);
   }
-  /* right xdrop (i < subject_bounds.end by assertion) */
-  if (j < query_bounds.end) {
+  /* right xdrop (subj_pos < subject_bounds.end by assertion) */
+  if (query_pos < query_bounds.end) {
     gt_seqabstract_reinit_encseq(forward,
                                  GT_READMODE_FORWARD,
                                  xdrop->unique_seq_fwd,
                                  ces_c->input_es,
-                                 subject_bounds.end - i,
-                                 i);
+                                 subject_bounds.end - subj_pos,
+                                 subj_pos);
     ces_c_xdrops++;
     gt_evalxdroparbitscoresextend(forward,
                                   &right_xdrop,
@@ -525,10 +523,11 @@ static int ces_c_xdrop(GtCondenseqCreator *ces_c,
     xdrop->best_right_res = xdrop->right_xdrop_res;
     xdrop->right_xdrop_res = swap;
 
-    GT_CES_LENCHECK((i - left_xdrop.ivalue) - subject_bounds.start);
+    GT_CES_LENCHECK((subj_pos - left_xdrop.ivalue) - subject_bounds.start);
     if (!had_err) {
-      /* left started att i-1 */
-      best_link->unique_offset = (i - left_xdrop.ivalue) - subject_bounds.start;
+      /* left started att subj_pos-1 */
+      best_link->unique_offset = (subj_pos - left_xdrop.ivalue) -
+        subject_bounds.start;
       GT_CES_LENCHECK(xdrop->left->jvalue + xdrop->right->jvalue);
     }
     if (!had_err) {
@@ -537,10 +536,11 @@ static int ces_c_xdrop(GtCondenseqCreator *ces_c,
     }
     if (!had_err) {
       best_link->unique_id = unique_id;
-      best_link->orig_startpos = j;
-      /* left started at j-1, so j-length is the first char on the left */
+      best_link->orig_startpos = query_pos;
+      /* left started at query_pos-1, so query_pos-length is the first char on
+         the left */
       best_link->orig_startpos -= left_xdrop.jvalue;
-      *best_match = i;
+      *best_match = subj_pos;
     }
   }
   gt_xdrop_resources_reset(xdrop->left_xdrop_res);
