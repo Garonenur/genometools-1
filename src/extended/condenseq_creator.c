@@ -646,7 +646,7 @@ static int ces_c_extend_seeds_window(GtCondenseqCreator *ces_c,
        !had_err && idx_cur < match_positions.no_positions;
        idx_cur++)
   {
-    bool found = false; /* we only extend j' once */
+    bool xdrop_run_on_j_prime = false; /* we only extend j' once */
     GtUword subjectpos = match_positions.startpos[idx_cur],
             new_uid = match_positions.unique_ids[idx_cur];
     /* end == subjectpos should not be possible as this would be a separator */
@@ -660,7 +660,7 @@ static int ces_c_extend_seeds_window(GtCondenseqCreator *ces_c,
     }
     /* start with search for right hit at end of window */
     for (idx_win = ces_c->windowsize - 1;
-         !had_err && !found && idx_win >= ces_c->kmersize;
+         !had_err && !xdrop_run_on_j_prime && idx_win >= ces_c->kmersize;
          idx_win--) {
       GtKmerStartpos j_primes;
       j_primes.startpos =
@@ -682,7 +682,7 @@ static int ces_c_extend_seeds_window(GtCondenseqCreator *ces_c,
         /* hit within window? */
         if (j_prime_idx < j_primes.no_positions &&
             subjectpos + ces_c->windowsize > j_prime) {
-          found = true;
+          xdrop_run_on_j_prime = true;
           had_err = ces_c_xdrop(ces_c,
                                 subjectpos, querypos,
                                 query_bounds,
