@@ -102,7 +102,7 @@ gt_condenseq_compress_option_parser_new(void *tool_arguments)
   /* -windowsize */
   option = gt_option_new_uint("windowsize",
                               "Size of window in which to search for hit pairs "
-                              "of kmers, has to be larger than kmersize" ,
+                              "of kmers, has to be at least 2 * kmersize" ,
                               &arguments->windowsize, GT_UNDEF_UINT);
   gt_option_parser_add_option(op, option);
 
@@ -343,9 +343,9 @@ static int gt_condenseq_compress_runner(GT_UNUSED int argc, const char **argv,
     }
   }
   if (!had_err &&
-      arguments->windowsize <= arguments->kmersize) {
-    gt_error_set(err, "-windowsize (%u) must be larger -kmersize (%u)!",
-                 arguments->windowsize, arguments->kmersize);
+      arguments->windowsize < arguments->kmersize*2) {
+    gt_error_set(err, "-windowsize (%u) must be at least -kmersize * 2 (%u)!",
+                 arguments->windowsize, arguments->kmersize*2);
     had_err = -1;
   }
   if (!had_err &&
