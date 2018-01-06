@@ -1706,26 +1706,23 @@ int gt_condenseq_creator_create(GtCondenseqCreator *condenseq_creator,
       gt_kmer_database_set_prune(condenseq_creator->kmer_db);
   }
   condenseq_creator->ces = ces;
+  condenseq_creator->diagonals = NULL;
   if (condenseq_creator->use_diagonals || condenseq_creator->use_full_diags) {
     if (gt_showtime_enabled())
       gt_timer_show_progress(timer, "create diagonals", stderr);
     condenseq_creator->diagonals =
       gt_malloc(sizeof (*condenseq_creator->diagonals));
+    condenseq_creator->diagonals->full = NULL;
     if (condenseq_creator->use_full_diags) {
       condenseq_creator->diagonals->full =
         ces_c_diagonals_full_new((size_t) gt_encseq_total_length(encseq));
     }
-    else
-      condenseq_creator->diagonals->full = NULL;
+    condenseq_creator->diagonals->sparse = NULL;
     if (condenseq_creator->use_diagonals) {
       condenseq_creator->diagonals->sparse =
         ces_c_sparse_diags_new((size_t) condenseq_creator->initsize);
     }
-    else
-      condenseq_creator->diagonals->sparse = NULL;
   }
-  else
-    condenseq_creator->diagonals = NULL;
 
   ces_c_xdrops = 0;
   had_err = ces_c_analyse(condenseq_creator, timer, err);
