@@ -997,17 +997,17 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
     while (diag != NULL) {
       i_prime = diag->d - diag->j;
       if (querypos - i_prime > ces_c->windowsize) {
-        gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
+        /* gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
                    diag->d,
                    i_prime,
-                   diag->j);
+                   diag->j); */
         good++;
       }
       else {
-        gt_log_log("-D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
+        /* gt_log_log("-D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
                    diag->d,
                    i_prime,
-                   diag->j);
+                   diag->j); */
         bad++;
       }
       diag = gt_rbtree_iter_next(iter);
