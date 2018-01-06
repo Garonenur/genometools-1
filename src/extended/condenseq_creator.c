@@ -921,14 +921,40 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
 
 #ifdef GT_CONDENSEQ_CREATOR_DIAGS_DEBUG
   if (diags->full != NULL) {
-    gt_log_log("I: " GT_WU " FULL", querypos);
+    GtUword i_prime,
+            good=0,
+            bad=0,
+            empty=0;
+    gt_log_log("current I: " GT_WU " FULL", querypos);
     for (subject_idx = 0; subject_idx < diags->full->nextfree; subject_idx++) {
-      if (diags->full->space[subject_idx] != GT_UNDEF_UWORD)
-        gt_log_log("D: " GT_WU ", I: " GT_WU,
-                   subject_idx, diags->full->space[subject_idx]);
+      if (diags->full->space[subject_idx] != GT_UNDEF_UWORD) {
+        i_prime = subject_idx - diags->full->space[subject_idx];
+        if (querypos - i_prime > ces_c->windowsize) {
+          /* gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
+                     i_prime,
+                     subject_idx, diags->full->space[subject_idx]); */
+          good++;
+        }
+        else {
+          /* gt_log_log("-D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
+                     i_prime,
+                     subject_idx, diags->full->space[subject_idx]); */
+          bad++;
+        }
+      }
+      else {
+        /* gt_log_log("-D: " GT_WU ", I': X, J': X", subject_idx); */
+        empty++;
+      }
     }
+    gt_log_log("good: " GT_WU ", bad: " GT_WU ", empty: " GT_WU,
+               good, bad, empty);
   }
   if (diags->sparse != NULL) {
+    GtUword i_prime,
+            good=0,
+            bad=0,
+            empty=0;
     GtRBTreeIter *iter;
     CesCDiag *diag;
     if (diags->sparse->add_iterator == NULL)
@@ -936,23 +962,58 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
         gt_rbtree_iter_new_from_first(diags->sparse->add_tree);
     gt_rbtree_iter_reset_from_first(diags->sparse->add_iterator);
     iter = diags->sparse->add_iterator;
-    gt_log_log("I: " GT_WU " array:", querypos);
+    gt_log_log("current I: " GT_WU " SPARCE array:", querypos);
     for (subject_idx = 0;
          subject_idx < diags->sparse->nextfree;
          subject_idx++) {
-      if (diags->sparse->space[subject_idx].j != GT_UNDEF_UWORD)
-        gt_log_log("D: " GT_WU ", J: " GT_WU,
-                   diags->sparse->space[subject_idx].d,
-                   diags->sparse->space[subject_idx].j);
-      else
-        gt_log_log("D: " GT_WU ", J: X", diags->sparse->space[subject_idx].d);
+      if (diags->sparse->space[subject_idx].j != GT_UNDEF_UWORD) {
+        i_prime = diags->sparse->space[subject_idx].d -
+          diags->sparse->space[subject_idx].j;
+        if (querypos - i_prime > ces_c->windowsize) {
+          /* gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
+                     diags->sparse->space[subject_idx].d,
+                     i_prime,
+                     diags->sparse->space[subject_idx].j); */
+          good++;
+        }
+        else {
+          /* gt_log_log("-D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
+                     diags->sparse->space[subject_idx].d,
+                     i_prime,
+                     diags->sparse->space[subject_idx].j); */
+          bad++;
+        }
+      }
+      else {
+        /* gt_log_log("-D: " GT_WU ", I': X, J': X",
+           diags->sparse->space[subject_idx].d); */
+        empty++;
+      }
     }
-    gt_log_log("tree:");
+    gt_log_log("good: " GT_WU ", bad: " GT_WU ", empty: " GT_WU,
+               good, bad, empty);
+    gt_log_log("current I: " GT_WU " SPARCE tree:", querypos);
     diag = gt_rbtree_iter_data(iter);
     while (diag != NULL) {
-      gt_log_log("D: " GT_WU ", J: " GT_WU, diag->d, diag->j);
+      i_prime = diag->d - diag->j;
+      if (querypos - i_prime > ces_c->windowsize) {
+        gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
+                   diag->d,
+                   i_prime,
+                   diag->j);
+        good++;
+      }
+      else {
+        gt_log_log("-D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
+                   diag->d,
+                   i_prime,
+                   diag->j);
+        bad++;
+      }
       diag = gt_rbtree_iter_next(iter);
     }
+    gt_log_log("good: " GT_WU ", bad: " GT_WU ", empty: " GT_WU,
+               good, bad, empty);
   }
 #endif
 
