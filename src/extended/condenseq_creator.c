@@ -356,7 +356,7 @@ static void ces_c_sparse_diags_clean(GtCondenseqCreator *ces_c)
 
 static inline void ces_c_diags_set(GtCondenseqCreator *ces_c,
                                    GtUword d,
-                                   GtUword j, GtUword j_min,
+                                   GtUword j,
                                    CesCDiag *overwrite)
 {
   CesCDiags *diags = ces_c->diagonals;
@@ -367,7 +367,7 @@ static inline void ces_c_diags_set(GtCondenseqCreator *ces_c,
   if (diags->full != NULL) {
     CesCFullDiags *fdiags = diags->full;
     if (fdiags->space[d] == GT_UNDEF_UWORD ||
-        fdiags->space[d] < j_min ||
+        fdiags->space[d] < j - ces_c->windowsize ||
         fdiags->space[d] + ces_c->kmersize - 1 < j)
       fdiags->space[d] = j;
   }
@@ -376,7 +376,7 @@ static inline void ces_c_diags_set(GtCondenseqCreator *ces_c,
     if (overwrite != NULL) {
       overwrite->d = d;
       if (overwrite->j == GT_UNDEF_UWORD ||
-          overwrite->j < j_min ||
+          overwrite->j < j - ces_c->windowsize ||
           overwrite->j + ces_c->kmersize - 1 < j)
       overwrite->j = j;
     }
@@ -916,7 +916,7 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
         }
       }
     }
-    ces_c_diags_set(ces_c, d, subjectpos, subject_bounds.start, overwrite_diag);
+    ces_c_diags_set(ces_c, d, subjectpos, overwrite_diag);
   }
 
 #ifdef GT_CONDENSEQ_CREATOR_DIAGS_DEBUG
