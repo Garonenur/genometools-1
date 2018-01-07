@@ -366,9 +366,10 @@ static inline void ces_c_diags_set(GtCondenseqCreator *ces_c,
     ces_c->max_d = d;
   if (diags->full != NULL) {
     CesCFullDiags *fdiags = diags->full;
-    if (fdiags->space[d] == GT_UNDEF_UWORD ||
-        fdiags->space[d] < j - ces_c->windowsize ||
-        fdiags->space[d] + ces_c->kmersize - 1 < j)
+    GtUword j_prime = fdiags->space[d];
+    if (j_prime == GT_UNDEF_UWORD ||
+        j_prime <= j - ces_c->windowsize ||
+        j_prime + ces_c->kmersize - 1 < j)
       fdiags->space[d] = j;
   }
   if (diags->sparse != NULL) {
@@ -376,7 +377,7 @@ static inline void ces_c_diags_set(GtCondenseqCreator *ces_c,
     if (overwrite != NULL) {
       overwrite->d = d;
       if (overwrite->j == GT_UNDEF_UWORD ||
-          overwrite->j < j - ces_c->windowsize ||
+          overwrite->j <= j - ces_c->windowsize ||
           overwrite->j + ces_c->kmersize - 1 < j)
       overwrite->j = j;
     }
@@ -415,7 +416,8 @@ static void ces_c_sparse_diags_mark(CesCSparseDiags *diags,
     /* do not cross current d! */
     while (d_ptr >= diags->space &&
            d_ptr->d > d &&
-           d_ptr->j <= j_max) {/* old diag of last block */
+           d_ptr->j <= j_max) {/* old diag of last block,
+                                  GT_UNDEF_UWORD > j_max */
       d_ptr->j = GT_UNDEF_UWORD;
       diags->marked++;
       d_ptr--;
