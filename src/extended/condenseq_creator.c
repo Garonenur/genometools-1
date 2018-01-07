@@ -553,11 +553,11 @@ static int ces_c_xdrop(GtCondenseqCreator *ces_c,
 }
 
 #define GT_CONDENSEQ_CREATOR_WINDOWIDX(WIN,N) (WIN->next + N < WIN->count ? \
-                                              WIN->next + N :              \
-                                              WIN->next + N - WIN->count)
+                                               WIN->next + N :              \
+                                               WIN->next + N - WIN->count)
 #define GT_CONDENSEQ_CREATOR_LAST_WIN(WIN) (WIN->next == 0 ? \
-                                           WIN->count - 1 : \
-                                           WIN->next - 1)
+                                            WIN->count - 1 : \
+                                            WIN->next - 1)
 
 #define GT_CES_C_MIN_POS_NUM_CUTOFF (GtUword) 30
 
