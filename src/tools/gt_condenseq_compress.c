@@ -35,10 +35,12 @@ typedef struct {
   GtEncseq              *input_es;
   GtStr                 *indexname;
   GtXdropArbitraryscores scores;
-  GtUword                minalignlength,
-                         cutoff_value,
+  GtUword                cutoff_value,
                          fraction,
-                         initsize;
+                         initsize,
+                         kdb_buffsize,
+                         minalignlength,
+                         rbtree_size;
   GtWord                 xdrop;
   unsigned int           kmersize,
                          windowsize,
@@ -236,6 +238,20 @@ gt_condenseq_compress_option_parser_new(void *tool_arguments)
                               &arguments->kdb, false);
   gt_option_parser_add_option(op, option);
 
+  /* -kmer_buffer */
+  option = gt_option_new_uword("kmer_buffer",
+                               "size of the kmer db buffer.",
+                               &arguments->kdb_buffsize, GT_UNDEF_UWORD);
+  gt_option_is_development_option(option);
+  gt_option_parser_add_option(op, option);
+
+  /* -tree_size */
+  option = gt_option_new_uword("tree_size",
+                               "size of the red black tree for diagonals"
+                               "ignored if no sparse diagonals used",
+                               &arguments->rbtree_size, GT_UNDEF_UWORD);
+  gt_option_is_development_option(option);
+  gt_option_parser_add_option(op, option);
   return op;
 }
 
@@ -396,6 +412,10 @@ static int gt_condenseq_compress_runner(GT_UNUSED int argc, const char **argv,
       if (arguments->clean_percent != GT_UNDEF_UINT)
         gt_condenseq_creator_set_diags_clean_limit(ces_c,
                                                    arguments->clean_percent);
+      if (arguments->kdb_buffsize != GT_UNDEF_UWORD)
+        gt_condenseq_creator_set_kdb_buffsize(ces_c, arguments->kdb_buffsize);
+      if (arguments->rbtree_size != GT_UNDEF_UWORD)
+        gt_condenseq_creator_set_rbtree_size(ces_c, arguments->rbtree_size);
 
       had_err = gt_condenseq_creator_create(ces_c,
                                             arguments->indexname,

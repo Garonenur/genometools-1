@@ -311,16 +311,18 @@ struct GtCondenseqCreator {
                                   current_seq_len,
                                   current_seq_pos,
                                   current_seq_start,
+                                  cutoff_value,
                                   initsize,
+                                  kdb_buffzise,
                                   main_pos,
                                   main_seqnum,
-                                  min_align_len,
-                                  cutoff_value,
+                                  max_d,
                                   mean,
                                   mean_fraction,
+                                  min_align_len,
                                   min_d,
-                                  max_d,
-                                  min_nu_kmers;
+                                  min_nu_kmers,
+                                  rbt_size;
   unsigned int                    kmersize,
                                   windowsize,
                                   cleanup_percent;
@@ -820,8 +822,6 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
   *xdrop->left = empty;
   *xdrop->right = empty;
 
-  subject_bounds.end = 0;
-
   subject_positions = win->pos_arrs[GT_CONDENSEQ_CREATOR_LAST_WIN(win)];
 
   /* nothing there or window not full */
@@ -1049,13 +1049,14 @@ GtCondenseqCreator *gt_condenseq_creator_new(GtUword initsize,
     return NULL;
   }
   ces_c->ces = NULL;
-  ces_c->current_orig_start = 0;
   ces_c->cleanup_percent = GT_DIAGS_CLEAN_LIMIT;
+  ces_c->current_orig_start = 0;
   ces_c->current_seq_pos = 0;
   ces_c->cutoff_value = GT_UNDEF_UWORD;
   ces_c->diagonals = NULL;
   ces_c->extend_all_kmers = false;
   ces_c->initsize = initsize;
+  ces_c->kdb_buffzise = 65536; /* TODO DW find good default */
   ces_c->kmer_db = NULL;
   ces_c->kmersize = kmersize;
   ces_c->logger = logger;
@@ -1064,15 +1065,16 @@ GtCondenseqCreator *gt_condenseq_creator_new(GtUword initsize,
   ces_c->main_seqnum = 0;
   ces_c->max_d = 0;
   ces_c->mean = 0;
-  ces_c->min_nu_kmers = 0;
+  ces_c->mean_cutoff = false;
   ces_c->mean_fraction = (GtUword) 2;
-  ces_c->min_d = GT_UNDEF_UWORD;
   ces_c->min_align_len = minalignlength;
+  ces_c->min_d = GT_UNDEF_UWORD;
+  ces_c->min_nu_kmers = 0;
+  ces_c->prune_kmer_db = true;
+  ces_c->rbt_size = 16384; /* TODO DW find good default */
+  ces_c->use_cutoff = false;
   ces_c->use_diagonals = true;
   ces_c->use_full_diags = false;
-  ces_c->use_cutoff = false;
-  ces_c->mean_cutoff = false;
-  ces_c->prune_kmer_db = true;
   ces_c->window.count = 0;
   ces_c->window.next = 0;
   ces_c->windowsize = windowsize;
@@ -1172,6 +1174,21 @@ void gt_condenseq_creator_set_cutoff(GtCondenseqCreator *condenseq_creator,
   gt_assert(condenseq_creator != NULL);
   condenseq_creator->use_cutoff = true;
   condenseq_creator->cutoff_value = cutoff_value;
+}
+
+void gt_condenseq_creator_set_kdb_buffsize(
+                                          GtCondenseqCreator *condenseq_creator,
+                                          GtUword buffer_size)
+{
+  gt_assert(condenseq_creator != NULL);
+  condenseq_creator->kdb_buffzise = buffer_size;
+}
+
+void gt_condenseq_creator_set_rbtree_size(GtCondenseqCreator *condenseq_creator,
+                                          GtUword tree_size)
+{
+  gt_assert(condenseq_creator != NULL);
+  condenseq_creator->rbt_size = tree_size;
 }
 
 void gt_condenseq_creator_disable_cutoff(GtCondenseqCreator *condenseq_creator)
@@ -1713,7 +1730,6 @@ int gt_condenseq_creator_create(GtCondenseqCreator *condenseq_creator,
   int had_err = 0;
   GtCondenseq *ces;
   FILE *fp = NULL;
-  GtUword buffersize;
   GtTimer *timer = NULL;
   gt_assert(condenseq_creator != NULL);
   gt_assert(encseq != NULL);
@@ -1746,16 +1762,13 @@ int gt_condenseq_creator_create(GtCondenseqCreator *condenseq_creator,
   ces = gt_condenseq_new(encseq, logger);
   /* TODO DW: check if these values make sense. and if after init the buffer is
      always flushed! -> should be -> init_kmer_db*/
-  buffersize = condenseq_creator->initsize * 100;
-  if (buffersize > (GtUword) 100000)
-    buffersize = (GtUword) 100000;
-  gt_log_log("buffersize for kmer-db: " GT_WU, buffersize);
+  gt_log_log("buffersize for kmer-db: " GT_WU, condenseq_creator->kdb_buffzise);
   if (gt_showtime_enabled())
     gt_timer_show_progress(timer, "create kmer db", stderr);
   condenseq_creator->kmer_db =
     gt_kmer_database_new(gt_alphabet_num_of_chars(ces->alphabet),
                          condenseq_creator->kmersize,
-                         buffersize,
+                         condenseq_creator->kdb_buffzise,
                          encseq);
   if (condenseq_creator->use_cutoff) {
     if (condenseq_creator->mean_cutoff)
@@ -1783,7 +1796,7 @@ int gt_condenseq_creator_create(GtCondenseqCreator *condenseq_creator,
     condenseq_creator->diagonals->sparse = NULL;
     if (condenseq_creator->use_diagonals) {
       condenseq_creator->diagonals->sparse =
-        ces_c_sparse_diags_new((size_t) condenseq_creator->initsize);
+        ces_c_sparse_diags_new((size_t) condenseq_creator->rbt_size);
     }
   }
 
