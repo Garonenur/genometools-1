@@ -814,7 +814,8 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
   GtCondenseqCreatorXdrop *xdrop = &ces_c->xdrop;
   CesCDiags *diags = ces_c->diagonals;
   GtUword best_match = GT_UNDEF_UWORD,
-          subject_idx, querypos;
+          subject_idx, querypos,
+          d_relevant = 0, d_good = 0;
   GtXdropbest empty = {0,0,0,0,0};
   const bool forward = true,
              backward = false;
@@ -874,11 +875,13 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
         j_prime >= subject_bounds.start) {
       GtUword distance;
       gt_assert(j_prime < subjectpos);
+      d_relevant++;
       distance = subjectpos - j_prime;
 
       if (distance > (GtUword) ces_c->kmersize &&
           distance <= (GtUword) ces_c->windowsize) {
         GtUword i_prime;
+        d_good++;
 
         /* as querypos > i' and d = querypos - subjectpos = i' - j',
            i' = d + j' can not overflow */
@@ -920,6 +923,11 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
     }
     ces_c_diags_set(ces_c, d, subjectpos, overwrite_diag);
   }
+  gt_log_log("I: " GT_WU ", |J|/diags checked: " GT_WU ", relevant d: " GT_WU
+             ", good d: " GT_WU,
+             querypos,
+             subject_positions.no_positions,
+             d_relevant, d_good);
 
 #ifdef GT_CONDENSEQ_CREATOR_DIAGS_DEBUG
   if (diags->full != NULL) {
