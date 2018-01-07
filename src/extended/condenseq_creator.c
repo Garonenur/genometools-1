@@ -995,22 +995,29 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
     gt_log_log("good: " GT_WU ", bad: " GT_WU ", empty: " GT_WU,
                good, bad, empty);
     gt_log_log("current I: " GT_WU " SPARCE tree:", querypos);
+    good=0, bad=0, empty=0;
     diag = gt_rbtree_iter_data(iter);
     while (diag != NULL) {
-      i_prime = diag->d - diag->j;
-      if (querypos - i_prime > ces_c->windowsize) {
-        /* gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
-                   diag->d,
-                   i_prime,
-                   diag->j); */
-        good++;
+      if (diag.j != GT_UNDEF_UWORD) {
+        i_prime = diag->d - diag->j;
+        if (querypos - i_prime > ces_c->windowsize) {
+          /* gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
+             diag->d,
+             i_prime,
+             diag->j); */
+          good++;
+        }
+        else {
+          /* gt_log_log("-D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
+             diag->d,
+             i_prime,
+             diag->j); */
+          bad++;
+        }
       }
       else {
-        /* gt_log_log("-D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
-                   diag->d,
-                   i_prime,
-                   diag->j); */
-        bad++;
+        /* gt_log_log("-D: " GT_WU ", I': X, J': X", diag.d); */
+        empty++;
       }
       diag = gt_rbtree_iter_next(iter);
     }
