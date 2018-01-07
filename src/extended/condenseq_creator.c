@@ -931,12 +931,12 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
     for (diag = 0; diag < diags->full->nextfree; diag++) {
       if (diags->full->space[diag] != GT_UNDEF_UWORD) {
         i_prime = diag - diags->full->space[diag];
-        gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
-                   diag, i_prime, diags->full->space[diag]);
+        /* gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU, */
+                   /* diag, i_prime, diags->full->space[diag]); */
         good++;
       }
       else {
-        gt_log_log("-D: " GT_WU ", I': X, J': X", diag);
+        /* gt_log_log("-D: " GT_WU ", I': X, J': X", diag); */
         empty++;
       }
     }
@@ -961,15 +961,15 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
       if (diags->sparse->space[sparse_idx].j != GT_UNDEF_UWORD) {
         i_prime = diags->sparse->space[sparse_idx].d -
           diags->sparse->space[sparse_idx].j;
-        gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
-                   diags->sparse->space[sparse_idx].d,
-                   i_prime,
-                   diags->sparse->space[sparse_idx].j);
+        /* gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU, */
+                   /* diags->sparse->space[sparse_idx].d, */
+                   /* i_prime, */
+                   /* diags->sparse->space[sparse_idx].j); */
         good++;
       }
       else {
-        gt_log_log("-D: " GT_WU ", I': X, J': X",
-           diags->sparse->space[sparse_idx].d);
+        /* gt_log_log("-D: " GT_WU ", I': X, J': X", */
+           /* diags->sparse->space[sparse_idx].d); */
         empty++;
       }
     }
@@ -980,12 +980,12 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
     while (diag != NULL) {
       if (diag->j != GT_UNDEF_UWORD) {
         i_prime = diag->d - diag->j;
-        gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
-           diag->d, i_prime, diag->j);
+        /* gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU, */
+           /* diag->d, i_prime, diag->j); */
         good++;
       }
       else {
-        gt_log_log("-D: " GT_WU ", I': X, J': X", diag->d);
+        /* gt_log_log("-D: " GT_WU ", I': X, J': X", diag->d); */
         empty++;
       }
       diag = gt_rbtree_iter_next(iter);
