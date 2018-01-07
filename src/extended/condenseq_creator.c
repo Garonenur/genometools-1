@@ -955,21 +955,21 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
     gt_rbtree_iter_reset_from_first(diags->sparse->add_iterator);
     iter = diags->sparse->add_iterator;
     gt_log_log("current I: " GT_WU " SPARCE array:", querypos);
-    for (sparce_idx = 0;
-         sparce_idx < diags->sparse->nextfree;
-         sparce_idx++) {
-      if (diags->sparse->space[sparce_idx].j != GT_UNDEF_UWORD) {
-        i_prime = diags->sparse->space[sparce_idx].d -
-          diags->sparse->space[sparce_idx].j;
+    for (sparse_idx = 0;
+         sparse_idx < diags->sparse->nextfree;
+         sparse_idx++) {
+      if (diags->sparse->space[sparse_idx].j != GT_UNDEF_UWORD) {
+        i_prime = diags->sparse->space[sparse_idx].d -
+          diags->sparse->space[sparse_idx].j;
         gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
-                   diags->sparse->space[sparce_idx].d,
+                   diags->sparse->space[sparse_idx].d,
                    i_prime,
-                   diags->sparse->space[sparce_idx].j);
+                   diags->sparse->space[sparse_idx].j);
         good++;
       }
       else {
         gt_log_log("-D: " GT_WU ", I': X, J': X",
-           diags->sparse->space[sparce_idx].d);
+           diags->sparse->space[sparse_idx].d);
         empty++;
       }
     }
@@ -978,14 +978,14 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
     good=0, empty=0;
     diag = gt_rbtree_iter_data(iter);
     while (diag != NULL) {
-      if (diag.j != GT_UNDEF_UWORD) {
+      if (diag->j != GT_UNDEF_UWORD) {
         i_prime = diag->d - diag->j;
         gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU,
            diag->d, i_prime, diag->j);
         good++;
       }
       else {
-        gt_log_log("-D: " GT_WU ", I': X, J': X", diag.d);
+        gt_log_log("-D: " GT_WU ", I': X, J': X", diag->d);
         empty++;
       }
       diag = gt_rbtree_iter_next(iter);
