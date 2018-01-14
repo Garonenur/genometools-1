@@ -370,8 +370,8 @@ static inline void ces_c_diags_set(GtCondenseqCreator *ces_c,
     CesCFullDiags *fdiags = diags->full;
     GtUword j_prime = fdiags->space[d];
     if (j_prime == GT_UNDEF_UWORD ||
-        j_prime <= j - ces_c->windowsize ||
-        j_prime + ces_c->kmersize - 1 < j)
+        ces_c->windowsize - 1<= j_prime - j ||
+        ces_c->kmersize <= j_prime - j)
       fdiags->space[d] = j;
   }
   if (diags->sparse != NULL) {
@@ -379,11 +379,11 @@ static inline void ces_c_diags_set(GtCondenseqCreator *ces_c,
     if (overwrite != NULL) {
       overwrite->d = d;
       if (overwrite->j == GT_UNDEF_UWORD ||
-          overwrite->j <= j - ces_c->windowsize ||
-          overwrite->j + ces_c->kmersize - 1 < j)
+          ces_c->windowsize - 1 <= overwrite->j - j ||
+          ces_c->kmersize <= overwrite->j -j)
       overwrite->j = j;
     }
-    else {
+    else { /* similar to d beeing undefined above, but d is not present */
       GT_UNUSED bool nodecreated;
       if (sdiags->add_nextfree == sdiags->add_size)
       {
