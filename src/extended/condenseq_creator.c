@@ -53,8 +53,8 @@ static GtUword ces_c_xdrops = 0;
 
 #define GT_CES_C_SPARSE_DIAGS_RESIZE(A, MINELEMS) \
   if (A->nextfree + MINELEMS >= A->allocated) { \
-    A->allocated *= 1.2; \
     A->allocated += MINELEMS; \
+    A->allocated *= 1.2; \
     A->space = gt_realloc(A->space, \
                           (size_t) A->allocated * sizeof (*A->space)); \
   }
