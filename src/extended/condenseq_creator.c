@@ -43,13 +43,24 @@
 /* factor of deletable diagonals before they should be deleted */
 #define GT_DIAGS_CLEAN_LIMIT 20U
 
-/* outputs distriputions of how many deletes and inserts and replacements happen
+/* outputs distributions of how many deletes and inserts and replacements happen
    */
 /* #define GT_CONDENSEQ_CREATOR_DIST_DEBUG */
-/* outputs the diagonals data structure after every update */
-/* #define GT_CONDENSEQ_CREATOR_DIAGS_DEBUG */
+/* output diagonals fill percentage histograms */
+/* #define GT_CONDENSEQ_CREATOR_DIAG_DIST */
 
 static GtUword ces_c_xdrops = 0;
+
+#ifdef GT_CONDENSEQ_CREATOR_DIAG_DIST
+static GtUword maxdiag = 0;
+static GtDiscDistri *diags_relevant = NULL,
+                    *diags_good = NULL,
+                    *diags_fill = NULL,
+                    *diags_fill_max = NULL,
+                    *diags_sparse = NULL,
+                    *diags_sparse_max = NULL,
+                    *diags_sparse_empty = NULL;
+#endif
 
 #define GT_CES_C_SPARSE_DIAGS_RESIZE(A, MINELEMS) \
   if (A->nextfree + MINELEMS >= A->allocated) { \
@@ -801,11 +812,15 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
   GtCondenseqCreatorWindow *win = &ces_c->window;
   GtCondenseqCreatorXdrop *xdrop = &ces_c->xdrop;
   CesCDiags *diags = ces_c->diagonals;
-    GtUword subject_idx, querypos,
-            d_relevant = 0, d_good = 0;
-    GtXdropbest empty = {0,0,0,0,0};
+  GtUword subject_idx, querypos;
+  GtXdropbest empty = {0,0,0,0,0};
   const bool forward = true,
-        backward = false;
+             backward = false;
+#ifdef GT_CONDENSEQ_CREATOR_DIAG_DIST
+  GtUword d_relevant = 0, d_good = 0;
+  if (maxdiag == 0)
+    maxdiag = gt_encseq_total_length(ces_c->input_es);
+#endif
 
   *xdrop->left = empty;
   *xdrop->right = empty;
@@ -862,13 +877,17 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
         j_prime >= subject_bounds.start) {
       GtUword distance;
       gt_assert(j_prime < subjectpos);
+#ifdef GT_CONDENSEQ_CREATOR_DIAG_DIST
       d_relevant++;
+#endif
       distance = subjectpos - j_prime;
 
       if (distance > (GtUword) ces_c->kmersize &&
           distance <= (GtUword) ces_c->windowsize) {
         GtUword i_prime;
+#ifdef GT_CONDENSEQ_CREATOR_DIAG_DIST
         d_good++;
+#endif
 
         /* as querypos > i' and d = querypos - subjectpos = i' - j',
            i' = d + j' can not overflow */
@@ -903,82 +922,67 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
     }
     ces_c_diags_set(ces_c, d, subjectpos, overwrite_diag);
   }
-  gt_log_log("I: " GT_WU ", |J|/diags checked: " GT_WU ", relevant d: " GT_WU
-             ", good d: " GT_WU,
-             querypos,
-             subject_positions.no_positions,
-             d_relevant, d_good);
-
-#ifdef GT_CONDENSEQ_CREATOR_DIAGS_DEBUG
+#ifdef GT_CONDENSEQ_CREATOR_DIAG_DIST
+  if (diags_good == NULL) {
+    diags_good = gt_disc_distri_new();
+    diags_relevant = gt_disc_distri_new();
+  }
+  gt_disc_distri_add(diags_relevant, ((double) d_relevant) /
+                     subject_positions.no_positions * 100 );
+  gt_disc_distri_add(diags_good, ((double) d_good) / d_relevant * 100 );
   if (diags->full != NULL) {
-    GtUword i_prime,
-            good=0,
+    GtUword good=0,
             empty=0,
             diag;
-    gt_log_log("current I: " GT_WU " FULL", querypos);
     for (diag = 0; diag < diags->full->nextfree; diag++) {
       if (diags->full->space[diag] != GT_UNDEF_UWORD) {
-        i_prime = diag - diags->full->space[diag];
-        /* gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU, */
-                   /* diag, i_prime, diags->full->space[diag]); */
         good++;
       }
       else {
-        /* gt_log_log("-D: " GT_WU ", I': X, J': X", diag); */
         empty++;
       }
     }
-    gt_log_log("good: " GT_WU ", empty: " GT_WU, good, empty);
+    if (diags_fill == NULL) {
+      diags_fill = gt_disc_distri_new();
+      diags_fill_max = gt_disc_distri_new();
+    }
+    gt_disc_distri_add(diags_fill_max, ((double) good) / maxdiag * 100);
+    gt_disc_distri_add(diags_fill, ((double) good) / querypos * 100);
   }
   if (diags->sparse != NULL) {
-    GtUword i_prime,
-            good=0,
+    GtUword good=0,
             empty=0,
             sparse_idx;
-    GtRBTreeIter *iter;
+    GtRBTreeIter *iter = diags->sparse->add_iterator;
     CesCDiag *diag;
-    if (diags->sparse->add_iterator == NULL)
-      diags->sparse->add_iterator =
+    if (iter == NULL)
+      iter = diags->sparse->add_iterator =
         gt_rbtree_iter_new_from_first(diags->sparse->add_tree);
-    gt_rbtree_iter_reset_from_first(diags->sparse->add_iterator);
-    iter = diags->sparse->add_iterator;
-    gt_log_log("current I: " GT_WU " SPARCE array:", querypos);
+    gt_rbtree_iter_reset_from_first(iter);
     for (sparse_idx = 0;
          sparse_idx < diags->sparse->nextfree;
          sparse_idx++) {
-      if (diags->sparse->space[sparse_idx].j != GT_UNDEF_UWORD) {
-        i_prime = diags->sparse->space[sparse_idx].d -
-          diags->sparse->space[sparse_idx].j;
-        /* gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU, */
-                   /* diags->sparse->space[sparse_idx].d, */
-                   /* i_prime, */
-                   /* diags->sparse->space[sparse_idx].j); */
+      if (diags->sparse->space[sparse_idx].j != GT_UNDEF_UWORD)
         good++;
-      }
-      else {
-        /* gt_log_log("-D: " GT_WU ", I': X, J': X", */
-           /* diags->sparse->space[sparse_idx].d); */
+      else
         empty++;
-      }
     }
-    gt_log_log("good: " GT_WU ", empty: " GT_WU, good, empty);
-    gt_log_log("current I: " GT_WU " SPARCE tree:", querypos);
-    good=0, empty=0;
     diag = gt_rbtree_iter_data(iter);
     while (diag != NULL) {
-      if (diag->j != GT_UNDEF_UWORD) {
-        i_prime = diag->d - diag->j;
-        /* gt_log_log("+D: " GT_WU ", I': " GT_WU ", J': " GT_WU, */
-           /* diag->d, i_prime, diag->j); */
+      if (diag->j != GT_UNDEF_UWORD)
         good++;
-      }
-      else {
-        /* gt_log_log("-D: " GT_WU ", I': X, J': X", diag->d); */
+      else
         empty++;
-      }
       diag = gt_rbtree_iter_next(iter);
     }
-    gt_log_log("good: " GT_WU ", empty: " GT_WU, good, empty);
+    if (diags_sparse == NULL) {
+      diags_sparse = gt_disc_distri_new();
+      diags_sparse_max = gt_disc_distri_new();
+      diags_sparse_empty = gt_disc_distri_new();
+    }
+    gt_disc_distri_add(diags_sparse_max, ((double) good+empty) / maxdiag * 100);
+    gt_disc_distri_add(diags_sparse, ((double) good+empty) / querypos * 100);
+    gt_disc_distri_add(diags_sparse_empty, empty);
   }
 #endif
 
@@ -1782,8 +1786,8 @@ int gt_condenseq_creator_create(GtCondenseqCreator *condenseq_creator,
     if (gt_log_enabled() &&
         (condenseq_creator->use_diagonals ||
          condenseq_creator->use_full_diags)) {
+      GT_UNUSED GtFile *out = gt_file_new_from_fileptr(gt_log_fp());
 #ifdef GT_CONDENSEQ_CREATOR_DIST_DEBUG
-      GtFile *out = gt_file_new_from_fileptr(gt_log_fp());
       gt_log_log("dist of number added:");
       gt_disc_distri_show(condenseq_creator->add, out);
       gt_log_log("dist of number replaced:");
@@ -1792,19 +1796,39 @@ int gt_condenseq_creator_create(GtCondenseqCreator *condenseq_creator,
       gt_disc_distri_show(condenseq_creator->delete, out);
       gt_file_delete_without_handle(out);
 #endif
+#ifdef GT_CONDENSEQ_CREATOR_DIAG_DIST
+      gt_log_log("###RELEVANT %%");
+      gt_disc_distri_show(diags_relevant, out);
+      gt_log_log("###GOOD %%");
+      gt_disc_distri_show(diags_good, out);
+      if (condenseq_creator->diagonals->full != NULL) {
+        gt_log_log("###FILL %% of visited");
+        gt_disc_distri_show(diags_fill, out);
+        gt_log_log("###FILL %%");
+        gt_disc_distri_show(diags_fill_max, out);
+      }
+      if (condenseq_creator->diagonals->sparse != NULL) {
+        gt_log_log("###SPARCE %% of visited");
+        gt_disc_distri_show(diags_sparse, out);
+        gt_log_log("###SPARCE %%");
+        gt_disc_distri_show(diags_sparse_max, out);
+        gt_log_log("###SPARCE %% empty");
+        gt_disc_distri_show(diags_sparse_empty, out);
+      }
+      gt_log_log("###END DIAG DIST");
+#endif
       gt_log_log("min_d: " GT_WU ", max_d: " GT_WU " (# diagonals: " GT_WU ") ",
                  condenseq_creator->min_d,
                  condenseq_creator->max_d,
                  condenseq_creator->max_d - condenseq_creator->min_d + 1);
-      if (condenseq_creator->diagonals != NULL) {
-        if (condenseq_creator->diagonals->sparse != NULL)
-          gt_log_log("Sparse diagonals allocated: " GT_WU ", max used: " GT_WU,
-                     condenseq_creator->diagonals->sparse->allocated,
-                     condenseq_creator->diagonals->sparse->max);
-        if (condenseq_creator->diagonals->full != NULL)
-          gt_log_log("Full diagonals allocated: " GT_WU,
-                     condenseq_creator->diagonals->full->allocated);
-      }
+      if (condenseq_creator->diagonals->sparse != NULL)
+        gt_log_log("Sparse diagonals allocated: " GT_WU ", max used: " GT_WU,
+                   condenseq_creator->diagonals->sparse->allocated,
+                   condenseq_creator->diagonals->sparse->max);
+      if (condenseq_creator->diagonals->full != NULL)
+        gt_log_log("Full diagonals allocated: " GT_WU,
+                   condenseq_creator->diagonals->full->allocated);
+
     }
     had_err = gt_alphabet_to_file(ces->alphabet,
                                   gt_str_get(basename), err);
