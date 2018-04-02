@@ -982,7 +982,7 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
     }
     gt_disc_distri_add(diags_sparse_max, ((double) good+empty) / maxdiag * 100);
     gt_disc_distri_add(diags_sparse, ((double) good+empty) / querypos * 100);
-    gt_disc_distri_add(diags_sparse_empty, empty);
+    gt_disc_distri_add(diags_sparse_empty, empty / ((double) good+empty) * 100);
   }
 #endif
 
