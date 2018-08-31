@@ -719,11 +719,11 @@ obj/gt_config.h: VERSION
 	    -e 's/^/#define GT_CPPFLAGS "/'; \
 	  echo '#define GT_VERSION "'`cat VERSION`\" ) > $@
 	$(V_DO)cat VERSION | \
-          sed 's/\([0-9]*\)\.[0-9]*\.[0-9]*/#define GT_MAJOR_VERSION \1/' >> $@
+          sed 's/[^0-9]*\([0-9]*\)\.[0-9]*\.[0-9]*.*/#define GT_MAJOR_VERSION \1/' >> $@
 	$(V_DO)cat VERSION | \
-          sed 's/[0-9]*\.\([0-9]*\)\.[0-9]*/#define GT_MINOR_VERSION \1/' >> $@
+          sed 's/[^0-9]*[0-9]*\.\([0-9]*\)\.[0-9]*.*/#define GT_MINOR_VERSION \1/' >> $@
 	$(V_DO)cat VERSION | \
-          sed 's/[0-9]*\.[0-9]*\.\([0-9]*\)/#define GT_MICRO_VERSION \1/' >> $@
+          sed 's/[^0-9]*[0-9]*\.[0-9]*\.\([0-9]*\).*/#define GT_MICRO_VERSION \1/' >> $@
 	$(V_DO)echo '#endif' >> $@
 
 obj/amalgamation.c: $(LIBGENOMETOOLS_PRESRC)
