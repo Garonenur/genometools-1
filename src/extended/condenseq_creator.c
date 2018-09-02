@@ -52,14 +52,27 @@
 static GtUword ces_c_xdrops = 0;
 
 #ifdef GT_CONDENSEQ_CREATOR_DIAG_DIST
+static const int DISTSIZE=101;
+#define GT_CESC_DISTR_ARR(A)\
+  A = gt_calloc(DISTSIZE, sizeof (*A))
+#define GT_CESC_DIV(A,B)\
+  (B == 0 ? 0 : (int)((double) A / B * 100))
+#define GT_CESC_SHOW_DIST(DIST)\
+{\
+  int i; \
+  for (i=0; i<DISTSIZE; i++)\
+  {\
+    gt_log_log("%d: " GT_WU "%%", i, DIST[i]);\
+  }\
+}
 static GtUword maxdiag = 0;
-static GtDiscDistri *diags_relevant = NULL,
-                    *diags_good = NULL,
-                    *diags_fill = NULL,
-                    *diags_fill_max = NULL,
-                    *diags_sparse = NULL,
-                    *diags_sparse_max = NULL,
-                    *diags_sparse_empty = NULL;
+static GtUword *diags_relevant = NULL,
+               *diags_good = NULL,
+               *diags_fill = NULL,
+               *diags_fill_max = NULL,
+               *diags_sparse = NULL,
+               *diags_sparse_max = NULL,
+               *diags_sparse_empty = NULL;
 #endif
 
 #define GT_CES_C_SPARSE_DIAGS_RESIZE(A, MINELEMS) \
@@ -470,7 +483,7 @@ static void ces_c_xdrop_init(GtXdropArbitraryscores *scores,
 /* .end is exclusive!!! */
 static int ces_c_xdrop(GtCondenseqCreator *ces_c,
                        GtUword subj_pos,
-                       GtUword query_pos,
+                       GtUword querypos,
                        GtRange query_bounds,
                        GtRange subject_bounds,
                        GtUword unique_id,
@@ -487,7 +500,7 @@ static int ces_c_xdrop(GtCondenseqCreator *ces_c,
   gt_assert(subj_pos + ces_c->kmersize - 1 < subject_bounds.end);
 
   /* left xdrop */
-  if (query_bounds.start < query_pos && subject_bounds.start < subj_pos) {
+  if (query_bounds.start < querypos && subject_bounds.start < subj_pos) {
     gt_seqabstract_reinit_encseq(backward,
                                  GT_READMODE_FORWARD,
                                  xdrop->unique_seq_bwd,
@@ -503,7 +516,7 @@ static int ces_c_xdrop(GtCondenseqCreator *ces_c,
                                   xdrop->xdropscore);
   }
   /* right xdrop (subj_pos < subject_bounds.end by assertion) */
-  if (query_pos < query_bounds.end) {
+  if (querypos < query_bounds.end) {
     gt_seqabstract_reinit_encseq(forward,
                                  GT_READMODE_FORWARD,
                                  xdrop->unique_seq_fwd,
@@ -550,8 +563,8 @@ static int ces_c_xdrop(GtCondenseqCreator *ces_c,
     }
     if (!had_err) {
       best_link->unique_id = unique_id;
-      best_link->orig_startpos = query_pos;
-      /* left started at query_pos-1, so query_pos-length is the first char on
+      best_link->orig_startpos = querypos;
+      /* left started at querypos-1, so querypos-length is the first char on
          the left */
       best_link->orig_startpos -= left_xdrop.jvalue;
     }
@@ -922,15 +935,19 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
     }
     ces_c_diags_set(ces_c, d, subjectpos, overwrite_diag);
   }
+
 #ifdef GT_CONDENSEQ_CREATOR_DIAG_DIST
   if (diags_good == NULL) {
-    diags_good = gt_disc_distri_new();
-    diags_relevant = gt_disc_distri_new();
+    GT_CESC_DISTR_ARR(diags_good);
+    GT_CESC_DISTR_ARR(diags_relevant);
   }
-  gt_disc_distri_add(diags_relevant, ((double) d_relevant) /
-                     subject_positions.no_positions * 100 );
-  gt_disc_distri_add(diags_good, ((double) d_good) / d_relevant * 100 );
+  diags_relevant[GT_CESC_DIV(d_relevant,subject_positions.no_positions)]++;
+  diags_good[GT_CESC_DIV(d_good,d_relevant)]++;
   if (diags->full != NULL) {
+    if (diags_fill == NULL) {
+      GT_CESC_DISTR_ARR(diags_fill);
+      GT_CESC_DISTR_ARR(diags_fill_max);
+    }
     GtUword good=0,
             empty=0,
             diag;
@@ -942,14 +959,15 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
         empty++;
       }
     }
-    if (diags_fill == NULL) {
-      diags_fill = gt_disc_distri_new();
-      diags_fill_max = gt_disc_distri_new();
-    }
-    gt_disc_distri_add(diags_fill_max, ((double) good) / maxdiag * 100);
-    gt_disc_distri_add(diags_fill, ((double) good) / querypos * 100);
+    diags_fill_max[GT_CESC_DIV(good,maxdiag)]++;
+    diags_fill[GT_CESC_DIV(good,querypos)]++;
   }
   if (diags->sparse != NULL) {
+    if (diags_sparse == NULL) {
+      GT_CESC_DISTR_ARR(diags_sparse);
+      GT_CESC_DISTR_ARR(diags_sparse_max);
+      GT_CESC_DISTR_ARR(diags_sparse_empty);
+    }
     GtUword good=0,
             empty=0,
             sparse_idx;
@@ -975,14 +993,9 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
         empty++;
       diag = gt_rbtree_iter_next(iter);
     }
-    if (diags_sparse == NULL) {
-      diags_sparse = gt_disc_distri_new();
-      diags_sparse_max = gt_disc_distri_new();
-      diags_sparse_empty = gt_disc_distri_new();
-    }
-    gt_disc_distri_add(diags_sparse_max, ((double) good+empty) / maxdiag * 100);
-    gt_disc_distri_add(diags_sparse, ((double) good+empty) / querypos * 100);
-    gt_disc_distri_add(diags_sparse_empty, empty / ((double) good+empty) * 100);
+    diags_sparse_max[GT_CESC_DIV(good+empty, maxdiag)]++;
+    diags_sparse[GT_CESC_DIV(good+empty,querypos)]++;
+    diags_sparse_empty[GT_CESC_DIV(empty,good+empty)]++;
   }
 #endif
 
@@ -1786,8 +1799,8 @@ int gt_condenseq_creator_create(GtCondenseqCreator *condenseq_creator,
     if (gt_log_enabled() &&
         (condenseq_creator->use_diagonals ||
          condenseq_creator->use_full_diags)) {
-      GT_UNUSED GtFile *out = gt_file_new_from_fileptr(gt_log_fp());
 #ifdef GT_CONDENSEQ_CREATOR_DIST_DEBUG
+      GtFile *out = gt_file_new_from_fileptr(gt_log_fp());
       gt_log_log("dist of number added:");
       gt_disc_distri_show(condenseq_creator->add, out);
       gt_log_log("dist of number replaced:");
@@ -1798,22 +1811,22 @@ int gt_condenseq_creator_create(GtCondenseqCreator *condenseq_creator,
 #endif
 #ifdef GT_CONDENSEQ_CREATOR_DIAG_DIST
       gt_log_log("###RELEVANT %%");
-      gt_disc_distri_show(diags_relevant, out);
+      GT_CESC_SHOW_DIST(diags_relevant);
       gt_log_log("###GOOD %%");
-      gt_disc_distri_show(diags_good, out);
+      GT_CESC_SHOW_DIST(diags_good);
       if (condenseq_creator->diagonals->full != NULL) {
         gt_log_log("###FILL %% of visited");
-        gt_disc_distri_show(diags_fill, out);
+        GT_CESC_SHOW_DIST(diags_fill);
         gt_log_log("###FILL %%");
-        gt_disc_distri_show(diags_fill_max, out);
+        GT_CESC_SHOW_DIST(diags_fill_max);
       }
       if (condenseq_creator->diagonals->sparse != NULL) {
         gt_log_log("###SPARCE %% of visited");
-        gt_disc_distri_show(diags_sparse, out);
+        GT_CESC_SHOW_DIST(diags_sparse);
         gt_log_log("###SPARCE %%");
-        gt_disc_distri_show(diags_sparse_max, out);
+        GT_CESC_SHOW_DIST(diags_sparse_max);
         gt_log_log("###SPARCE %% empty");
-        gt_disc_distri_show(diags_sparse_empty, out);
+        GT_CESC_SHOW_DIST(diags_sparse_empty);
       }
       gt_log_log("###END DIAG DIST");
 #endif
