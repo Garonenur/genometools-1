@@ -90,7 +90,8 @@ typedef struct GtCondenseqCreatorDiagonal {
 typedef struct GtCondenseqCreatorFullDiags {
   GtUword *space;
   GtUword allocated,
-          nextfree;
+          nextfree,
+          used;
 } CesCFullDiags;
 
 typedef struct GtCondenseqCreatorSparseDiags {
@@ -120,6 +121,7 @@ static CesCFullDiags * ces_c_diagonals_full_new(size_t size)
     diags->space[idx] = GT_UNDEF_UWORD;
   diags->allocated = (GtUword) size;
   diags->nextfree = (GtUword) size;
+  diags->used = 0;
   return diags;
 }
 
@@ -271,6 +273,7 @@ static inline void ces_c_sparse_diags_add(CesCSparseDiags *diags)
   gt_assert(diags->add_nextfree == (GtUword) gt_rbtree_size(diags->add_tree));
   diag = gt_rbtree_iter_data(diags->add_iterator);
   while (diag != NULL) {
+    /* move */
     while (d_src >= diags->space && d_src->d > diag->d) {
       *d_dest = *d_src;
       d_dest--;
@@ -393,19 +396,31 @@ static inline void ces_c_diags_set(GtCondenseqCreator *ces_c,
   if (diags->full != NULL) {
     CesCFullDiags *fdiags = diags->full;
     GtUword j_prime = fdiags->space[d];
-    if (j_prime == GT_UNDEF_UWORD ||
-        ces_c->windowsize - 1<= j_prime - j ||
-        ces_c->kmersize <= j_prime - j)
+    if (j_prime == GT_UNDEF_UWORD) {
       fdiags->space[d] = j;
+      fdiags->used++;
+    }
+    else {
+      if (ces_c->windowsize - 1<= j_prime - j ||
+          ces_c->kmersize <= j_prime - j) {
+        fdiags->space[d] = j;
+      }
+    }
   }
+
   if (diags->sparse != NULL) {
     CesCSparseDiags *sdiags = diags->sparse;
     if (overwrite != NULL) {
       overwrite->d = d;
-      if (overwrite->j == GT_UNDEF_UWORD ||
-          ces_c->windowsize - 1 <= overwrite->j - j ||
-          ces_c->kmersize <= overwrite->j -j)
-      overwrite->j = j;
+      if (overwrite->j == GT_UNDEF_UWORD) {
+        overwrite->j = j;
+        sdiags->marked--;
+      }
+      else {
+        if (ces_c->windowsize - 1 <= overwrite->j - j ||
+            ces_c->kmersize <= overwrite->j -j)
+          overwrite->j = j;
+      }
     }
     else { /* similar to d beeing undefined above, but d is not present */
       GT_UNUSED bool nodecreated;
@@ -444,8 +459,10 @@ static void ces_c_sparse_diags_mark(CesCSparseDiags *diags,
            d_ptr->d > d &&
            d_ptr->j <= j_max) {/* old diag of last block,
                                   GT_UNDEF_UWORD > j_max */
-      d_ptr->j = GT_UNDEF_UWORD;
-      diags->marked++;
+      if (d_ptr->j != GT_UNDEF_UWORD) {
+        diags->marked++;
+        d_ptr->j = GT_UNDEF_UWORD;
+      }
       d_ptr--;
     }
   }
@@ -948,17 +965,7 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
       GT_CESC_DISTR_ARR(diags_fill);
       GT_CESC_DISTR_ARR(diags_fill_max);
     }
-    GtUword good=0,
-            empty=0,
-            diag;
-    for (diag = 0; diag < diags->full->nextfree; diag++) {
-      if (diags->full->space[diag] != GT_UNDEF_UWORD) {
-        good++;
-      }
-      else {
-        empty++;
-      }
-    }
+    GtUword good=diags->full->used;
     diags_fill_max[GT_CESC_DIV(good,maxdiag)]++;
     diags_fill[GT_CESC_DIV(good,querypos)]++;
   }
@@ -968,31 +975,9 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
       GT_CESC_DISTR_ARR(diags_sparse_max);
       GT_CESC_DISTR_ARR(diags_sparse_empty);
     }
-    GtUword good=0,
-            empty=0,
-            sparse_idx;
-    GtRBTreeIter *iter = diags->sparse->add_iterator;
-    CesCDiag *diag;
-    if (iter == NULL)
-      iter = diags->sparse->add_iterator =
-        gt_rbtree_iter_new_from_first(diags->sparse->add_tree);
-    gt_rbtree_iter_reset_from_first(iter);
-    for (sparse_idx = 0;
-         sparse_idx < diags->sparse->nextfree;
-         sparse_idx++) {
-      if (diags->sparse->space[sparse_idx].j != GT_UNDEF_UWORD)
-        good++;
-      else
-        empty++;
-    }
-    diag = gt_rbtree_iter_data(iter);
-    while (diag != NULL) {
-      if (diag->j != GT_UNDEF_UWORD)
-        good++;
-      else
-        empty++;
-      diag = gt_rbtree_iter_next(iter);
-    }
+    GtUword empty=diags->sparse->marked,
+            good= diags->sparse->nextfree +
+              gt_rbtree_size(diags->sparse->add_tree) - empty;
     diags_sparse_max[GT_CESC_DIV(good+empty, maxdiag)]++;
     diags_sparse[GT_CESC_DIV(good+empty,querypos)]++;
     diags_sparse_empty[GT_CESC_DIV(empty,good+empty)]++;
