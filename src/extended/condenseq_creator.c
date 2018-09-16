@@ -865,22 +865,22 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
             subjectpos = subject_positions.startpos[subject_idx],
             new_id = subject_positions.unique_ids[subject_idx],
             j_prime;
-            CesCDiag *overwrite_diag = NULL;
+    CesCDiag *overwrite_diag = NULL;
 
-            gt_assert(subjectpos < querypos);
-            d = querypos - subjectpos;
+    gt_assert(subjectpos < querypos);
+    d = querypos - subjectpos;
 
-            if (subject_bounds.end < subjectpos || subject_bounds.end == 0) {
-              if (subject_bounds.end != 0) {
-                ces_c_sparse_diags_mark(diags->sparse,
-                                        subject_bounds.end,
-                                        querypos - subject_bounds.end,
-                                        d);
-              }
-              gt_assert(new_id != ces_c->ces->uds_nelems);
-              subject_bounds.start = ces_c->ces->uniques[new_id].orig_startpos;
-              subject_bounds.end = subject_bounds.start +
-                ces_c->ces->uniques[new_id].len;
+    if (subject_bounds.end < subjectpos || subject_bounds.end == 0) {
+      if (subject_bounds.end != 0) {
+        ces_c_sparse_diags_mark(diags->sparse,
+                                subject_bounds.end,
+                                querypos - subject_bounds.end,
+                                d);
+      }
+      gt_assert(new_id != ces_c->ces->uds_nelems);
+      subject_bounds.start = ces_c->ces->uniques[new_id].orig_startpos;
+      subject_bounds.end = subject_bounds.start +
+        ces_c->ces->uniques[new_id].len;
       gt_assert(subject_bounds.start <= subjectpos &&
                 subjectpos + ces_c->kmersize <= subject_bounds.end);
     }
