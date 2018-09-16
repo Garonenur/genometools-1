@@ -56,7 +56,7 @@ static const int DISTSIZE=101;
 #define GT_CESC_DISTR_ARR(A)\
   A = gt_calloc(DISTSIZE, sizeof (*A))
 #define GT_CESC_DIV(A,B)\
-  (B == 0 ? 0 : (int)((double) A / B * 100))
+  (B == 0 ? 0 : (int)((double) (A) / (B) * 100))
 #define GT_CESC_SHOW_DIST(DIST)\
 {\
   int i; \
