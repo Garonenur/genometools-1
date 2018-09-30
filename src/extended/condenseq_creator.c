@@ -1813,11 +1813,11 @@ int gt_condenseq_creator_create(GtCondenseqCreator *condenseq_creator,
         GT_CESC_SHOW_DIST(diags_fill_max);
       }
       if (condenseq_creator->diagonals->sparse != NULL) {
-        gt_log_log("###SPARCE %% of visited");
+        gt_log_log("###SPARSE %% of visited");
         GT_CESC_SHOW_DIST(diags_sparse);
-        gt_log_log("###SPARCE %%");
+        gt_log_log("###SPARSE %%");
         GT_CESC_SHOW_DIST(diags_sparse_max);
-        gt_log_log("###SPARCE %% empty");
+        gt_log_log("###SPARSE %% empty");
         GT_CESC_SHOW_DIST(diags_sparse_empty);
       }
       gt_log_log("###END DIAG DIST");
