@@ -73,6 +73,7 @@ static GtUword *diags_relevant = NULL,
                *diags_sparse = NULL,
                *diags_sparse_max = NULL,
                *diags_sparse_empty = NULL;
+static GtDiscDistri *diags_checked = NULL;
 #endif
 
 #define GT_CES_C_SPARSE_DIAGS_RESIZE(A, MINELEMS) \
@@ -957,9 +958,12 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
   if (diags_good == NULL) {
     GT_CESC_DISTR_ARR(diags_good);
     GT_CESC_DISTR_ARR(diags_relevant);
+    diags_checked = gt_disc_distri_new();
   }
   diags_relevant[GT_CESC_DIV(d_relevant,subject_positions.no_positions)]++;
   diags_good[GT_CESC_DIV(d_good,d_relevant)]++;
+  gt_disc_distri_add(diags_checked,subject_positions.no_positions);
+
   if (diags->full != NULL) {
     if (diags_fill == NULL) {
       GT_CESC_DISTR_ARR(diags_fill);
@@ -969,6 +973,7 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
     diags_fill_max[GT_CESC_DIV(good,maxdiag)]++;
     diags_fill[GT_CESC_DIV(good,querypos)]++;
   }
+
   if (diags->sparse != NULL) {
     if (diags_sparse == NULL) {
       GT_CESC_DISTR_ARR(diags_sparse);
@@ -1784,8 +1789,8 @@ int gt_condenseq_creator_create(GtCondenseqCreator *condenseq_creator,
     if (gt_log_enabled() &&
         (condenseq_creator->use_diagonals ||
          condenseq_creator->use_full_diags)) {
+      GT_UNUSED GtFile *out = gt_file_new_from_fileptr(gt_log_fp());
 #ifdef GT_CONDENSEQ_CREATOR_DIST_DEBUG
-      GtFile *out = gt_file_new_from_fileptr(gt_log_fp());
       gt_log_log("dist of number added:");
       gt_disc_distri_show(condenseq_creator->add, out);
       gt_log_log("dist of number replaced:");
@@ -1795,6 +1800,8 @@ int gt_condenseq_creator_create(GtCondenseqCreator *condenseq_creator,
       gt_file_delete_without_handle(out);
 #endif
 #ifdef GT_CONDENSEQ_CREATOR_DIAG_DIST
+      gt_log_log("###CHECKED %%");
+      gt_disc_distri_show(diags_checked,out);
       gt_log_log("###RELEVANT %%");
       GT_CESC_SHOW_DIST(diags_relevant);
       gt_log_log("###GOOD %%");
