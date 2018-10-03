@@ -66,14 +66,16 @@ static const int DISTSIZE=101;
   }\
 }
 static GtUword maxdiag = 0;
-static GtUword *diags_relevant = NULL,
-               *diags_good = NULL,
+static GtUword *diags_relevant_rel = NULL,
+               *diags_good_rel = NULL,
                *diags_fill = NULL,
                *diags_fill_max = NULL,
                *diags_sparse = NULL,
                *diags_sparse_max = NULL,
                *diags_sparse_empty = NULL;
-static GtDiscDistri *diags_checked = NULL;
+static GtDiscDistri *diags_checked = NULL,
+                    *diags_relevant = NULL,
+                    *diags_good = NULL;
 #endif
 
 #define GT_CES_C_SPARSE_DIAGS_RESIZE(A, MINELEMS) \
@@ -956,13 +958,17 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
 
 #ifdef GT_CONDENSEQ_CREATOR_DIAG_DIST
   if (diags_good == NULL) {
-    GT_CESC_DISTR_ARR(diags_good);
-    GT_CESC_DISTR_ARR(diags_relevant);
+    GT_CESC_DISTR_ARR(diags_good_rel);
+    GT_CESC_DISTR_ARR(diags_relevant_rel);
     diags_checked = gt_disc_distri_new();
+    diags_good = gt_disc_distri_new();
+    diags_relevant = gt_disc_distri_new();
   }
-  diags_relevant[GT_CESC_DIV(d_relevant,subject_positions.no_positions)]++;
-  diags_good[GT_CESC_DIV(d_good,d_relevant)]++;
+  diags_good_rel[GT_CESC_DIV(d_good,d_relevant)]++;
+  diags_relevant_rel[GT_CESC_DIV(d_relevant,subject_positions.no_positions)]++;
   gt_disc_distri_add(diags_checked,subject_positions.no_positions);
+  gt_disc_distri_add(diags_good,d_good);
+  gt_disc_distri_add(diags_relevant,d_relevant);
 
   if (diags->full != NULL) {
     if (diags_fill == NULL) {
@@ -1803,9 +1809,13 @@ int gt_condenseq_creator_create(GtCondenseqCreator *condenseq_creator,
       gt_log_log("###CHECKED %%");
       gt_disc_distri_show(diags_checked,out);
       gt_log_log("###RELEVANT %%");
-      GT_CESC_SHOW_DIST(diags_relevant);
+      GT_CESC_SHOW_DIST(diags_relevant_rel);
+      gt_log_log("###RELEVANTREL %%");
+      gt_disc_distri_show(diags_relevant,out);
       gt_log_log("###GOOD %%");
-      GT_CESC_SHOW_DIST(diags_good);
+      GT_CESC_SHOW_DIST(diags_good_rel);
+      gt_log_log("###GOODREL %%");
+      gt_disc_distri_show(diags_good,out);
       if (condenseq_creator->diagonals->full != NULL) {
         gt_log_log("###FILL %% of visited");
         GT_CESC_SHOW_DIST(diags_fill);
