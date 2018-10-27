@@ -986,8 +986,8 @@ static int ces_c_extend_seeds_diags(GtCondenseqCreator *ces_c,
       GT_CESC_DISTR_ARR(diags_sparse_max);
       GT_CESC_DISTR_ARR(diags_sparse_empty);
     }
-    GtUword empty=diags->sparse->marked,
-            good= diags->sparse->nextfree +
+    GtUword empty = diags->sparse->marked,
+            good = diags->sparse->nextfree +
               gt_rbtree_size(diags->sparse->add_tree) - empty;
     diags_sparse_max[GT_CESC_DIV(good+empty, maxdiag)]++;
     diags_sparse[GT_CESC_DIV(good+empty,querypos)]++;
