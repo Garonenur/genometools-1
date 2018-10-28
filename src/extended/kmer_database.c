@@ -94,9 +94,9 @@ GtKmerDatabase* gt_kmer_database_new(unsigned int alpabet_size,
   kdb->unique_ids = NULL;
   kdb->sb.max_nu_kmers = sb_max_nu_kmers;
   /* may need upper bound */
-  kdb->initial_size = gt_encseq_total_length(encseq) / (GtUword) 100;
-  if (kdb->initial_size < sb_max_nu_kmers)
-    kdb->initial_size = sb_max_nu_kmers;
+  kdb->initial_size = sb_max_nu_kmers << 7;
+  kdb->initial_size = kdb->initial_size > gt_encseq_total_length(encseq) ?
+    gt_encseq_total_length(encseq) : kdb->initial_size;
 
   kdb->seen_kmers = 0;
   kdb->current_size = 0;
