@@ -59,7 +59,7 @@ struct GtKmerDatabase {
                 *seen_kmer_counts,
                 *positions,
                 *unique_ids;
- GtBittab       *deleted_positions;
+ GtBittab       *emptied_codes;
  GtUword        nu_kmer_codes,
                 initial_size,
                 current_size,
@@ -89,7 +89,7 @@ GtKmerDatabase* gt_kmer_database_new(unsigned int alpabet_size,
                          sizeof (*kdb->offset));
   kdb->seen_kmer_counts = gt_calloc((size_t) (kdb->nu_kmer_codes + 1),
                               sizeof (*kdb->seen_kmer_counts));
-  kdb->deleted_positions = gt_bittab_new(kdb->nu_kmer_codes);
+  kdb->emptied_codes = gt_bittab_new(kdb->nu_kmer_codes);
   kdb->positions = NULL;
   kdb->unique_ids = NULL;
   kdb->sb.max_nu_kmers = sb_max_nu_kmers;
@@ -136,7 +136,7 @@ void gt_kmer_database_delete(GtKmerDatabase *kdb)
     gt_free(kdb->positions);
     gt_free(kdb->unique_ids);
     gt_free(kdb->sb.kmers);
-    gt_bittab_delete(kdb->deleted_positions);
+    gt_bittab_delete(kdb->emptied_codes);
     GT_FREEARRAY(kdb->sb.intervals, GtRange);
     gt_free(kdb->sb.intervals);
     GT_FREEARRAY(kdb->sb.ids, GtUword);
@@ -202,10 +202,10 @@ static void gt_kmer_database_preprocess_buffer(GtKmerDatabase *kdb)
       kdb->seen_kmer_counts[current_kmer_code] += current_kmer_count;
       kdb->seen_kmer_counts[kdb->nu_kmer_codes] += current_kmer_count;
       if (kdb->cutoff_is_set &&
-          gt_bittab_bit_is_set(kdb->deleted_positions, current_kmer_code)) {
+          gt_bittab_bit_is_set(kdb->emptied_codes, current_kmer_code)) {
         if (kdb->mean_cutoff && kdb->seen_kmer_counts[current_kmer_code] <
             kdb->cutoff / GT_KMER_DATABASE_RESTORE_BUFFFER)
-          gt_bittab_unset_bit(kdb->deleted_positions, current_kmer_code);
+          gt_bittab_unset_bit(kdb->emptied_codes, current_kmer_code);
         else
           kdb->sb.preprocessed_kmer_count -= current_kmer_count;
       }
@@ -237,7 +237,7 @@ static void gt_kmer_database_prune(GtKmerDatabase *kdb)
     right = kdb->offset[code + 1];
     kdb->offset[code] -= deleted;
     if (kdb->seen_kmer_counts[code] > kdb->cutoff &&
-        !gt_bittab_bit_is_set(kdb->deleted_positions, code)) {
+        !gt_bittab_bit_is_set(kdb->emptied_codes, code)) {
       if (!delete && deleted > 0) {
         memmove(kdb->positions + left - deleted, kdb->positions + left,
                 (size_t) (current_left - left) * sizeof (*kdb->positions));
@@ -246,7 +246,7 @@ static void gt_kmer_database_prune(GtKmerDatabase *kdb)
       }
       delete = true;
       deleted += right - current_left;
-      gt_bittab_set_bit(kdb->deleted_positions, code);
+      gt_bittab_set_bit(kdb->emptied_codes, code);
     }
     else if (delete) {
       left = current_left;
@@ -296,7 +296,7 @@ static void gt_kmer_database_merge(GtKmerDatabase *kdb)
       right = kdb->offset[code];
       occ = right - left;
 
-      deleted = gt_bittab_bit_is_set(kdb->deleted_positions, code - 1);
+      deleted = gt_bittab_bit_is_set(kdb->emptied_codes, code - 1);
 
       kdb->offset[code] += preprocessed_size;
 
