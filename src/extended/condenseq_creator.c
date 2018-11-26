@@ -57,13 +57,16 @@ static const int DISTSIZE=101;
   A = gt_calloc(DISTSIZE, sizeof (*A))
 #define GT_CESC_DIV(A,B)\
   (B == 0 ? 0 : (int)((double) (A) / (B) * 100))
-#define GT_CESC_SHOW_DIST(DIST)\
-{\
-  int i; \
-  for (i=0; i<DISTSIZE; i++)\
-  {\
-    gt_log_log("%d: " GT_WU "%%", i, DIST[i]);\
-  }\
+#define GT_CESC_SHOW_DIST(DIST)           \
+{                                         \
+  int i;                                  \
+  GtUword total = 0;                      \
+  for (i=0; i<DISTSIZE; i++)              \
+  {                                       \
+    gt_log_log("%d: " GT_WU, i, DIST[i]); \
+    total += DIST[i];                     \
+  }                                       \
+  gt_log_log("total: " GT_WU, total);     \
 }
 static GtUword maxdiag = 0;
 static GtUword *diags_relevant_rel = NULL,
