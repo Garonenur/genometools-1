@@ -1812,13 +1812,13 @@ int gt_condenseq_creator_create(GtCondenseqCreator *condenseq_creator,
       gt_log_log("###CHECKED %%");
       gt_disc_distri_show(diags_checked,out);
       gt_log_log("###RELEVANT %%");
-      GT_CESC_SHOW_DIST(diags_relevant_rel);
-      gt_log_log("###RELEVANTREL %%");
       gt_disc_distri_show(diags_relevant,out);
       gt_log_log("###GOOD %%");
-      GT_CESC_SHOW_DIST(diags_good_rel);
-      gt_log_log("###GOODREL %%");
       gt_disc_distri_show(diags_good,out);
+      gt_log_log("###RELEVANTREL %%");
+      GT_CESC_SHOW_DIST(diags_relevant_rel);
+      gt_log_log("###GOODREL %%");
+      GT_CESC_SHOW_DIST(diags_good_rel);
       if (condenseq_creator->diagonals->full != NULL) {
         gt_log_log("###FILL %% of visited");
         GT_CESC_SHOW_DIST(diags_fill);
