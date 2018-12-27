@@ -1647,6 +1647,24 @@ static int ces_c_analyse(GtCondenseqCreator *ces_c, GtTimer *timer,
           gt_log_log(GT_WU " times xdrop was called", ces_c_xdrops);
           gt_log_log(GT_WU " uniques", ces_c->ces->uds_nelems);
           gt_log_log(GT_WU " links", ces_c->ces->lds_nelems);
+#ifdef GT_CONDENSEQ_CREATOR_DIAG_DIST
+          if (ces_c->use_diagonals)
+          {
+            CesCDiags *diags = ces_c->diagonals;
+            if (diags->sparse != NULL)
+            {
+              GtUword empty = diags->sparse->marked,
+                      good = diags->sparse->nextfree +
+                        gt_rbtree_size(diags->sparse->add_tree) - empty;
+              gt_log_log(GT_WU " sparse diags", good+empty);
+              gt_log_log(GT_WU " empty sparse diags", empty);
+            }
+            if (diags->full != NULL)
+            {
+              gt_log_log(GT_WU " used full diags", diags->full->used);
+            }
+          }
+#endif
           if (gt_showtime_enabled()) {
             if (percentile + 1 <= 100)
               gt_timer_show_progress_formatted(timer, stderr,
