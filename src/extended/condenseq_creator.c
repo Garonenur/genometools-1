@@ -1493,9 +1493,9 @@ static int ces_c_init_kmer_db(GtCondenseqCreator *ces_c, GtError *err)
   GtUword kmersize = (GtUword) ces_c->kmersize - 1;
   CesCState state;
 
-  /* disable pruning for initialization */
+  /* [>disable pruning for initialization<]
   if (ces_c->use_cutoff && ces_c->prune_kmer_db)
-    gt_kmer_database_disable_prune(ces_c->kmer_db);
+    gt_kmer_database_disable_prune(ces_c->kmer_db); */
 
   state = ces_c_skip_short_seqs(ces_c);
   if (state == GT_CONDENSEQ_CREATOR_CONT) {
@@ -1585,9 +1585,9 @@ static int ces_c_init_kmer_db(GtCondenseqCreator *ces_c, GtError *err)
 
   if (!had_err)
     gt_log_log("filled kmer-db at pos " GT_WU, ces_c->main_pos);
-  /* reenable */
+  /* [>reenable<]
   if (ces_c->use_cutoff && ces_c->prune_kmer_db)
-    gt_kmer_database_set_prune(ces_c->kmer_db);
+    gt_kmer_database_set_prune(ces_c->kmer_db); */
   return had_err;
 }
 
